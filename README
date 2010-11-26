@@ -1,0 +1,2 @@
+avinfo reads one filename per line on stdin, and outputs s-expression
+encoded informations about audio and video streams in the file.
