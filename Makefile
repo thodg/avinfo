@@ -16,11 +16,11 @@
 ##  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ##
 
-prefix = /usr/local/
+PREFIX := /usr/local
 CC := gcc
-CFLAGS = -pthread
-CPPFLAGS = -I${prefix}include
-LDFLAGS = -L${prefix}lib
+CFLAGS += -pthread
+CPPFLAGS += -I${PREFIX}/include
+LDFLAGS += -L${PREFIX}/lib
 
 PROGRAM = avinfo
 SRC = avinfo.c
@@ -30,6 +30,9 @@ all: ${PROGRAM}
 
 clean:
 	rm -f ${PROGRAM}
+
+install: ${PROGRAM}
+	install -m 755 ${PROGRAM} ${PREFIX}/bin
 
 ${PROGRAM}: ${SRC}
 	${CC} ${CFLAGS} ${CPPFLAGS} ${LDFLAGS} ${SRC} ${LIBS} -o ${PROGRAM}
