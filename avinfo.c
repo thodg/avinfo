@@ -43,11 +43,11 @@ int error (const char *msg, const char *append)
   return 1;
 }
 
-void avinfo_sample_fmt(enum SampleFormat fmt) {
-  if (fmt < -1 || fmt >= SAMPLE_FMT_NB)
+void avinfo_sample_fmt(enum AVSampleFormat fmt) {
+  if (fmt < -1 || fmt >= AV_SAMPLE_FMT_NB)
     printf("%d", fmt);
   else {
-    static const char *name[SAMPLE_FMT_NB + 1] = {
+    static const char *name[AV_SAMPLE_FMT_NB + 1] = {
       ":NONE",
       ":U8",
       ":S16",
@@ -60,10 +60,10 @@ void avinfo_sample_fmt(enum SampleFormat fmt) {
 }
 
 void avinfo_pix_fmt(int pix_fmt) {
-  if (pix_fmt < -1 || pix_fmt >= PIX_FMT_NB)
+  if (pix_fmt < -1 || pix_fmt >= AV_PIX_FMT_NB)
     printf("%d", pix_fmt);
   else {
-    static const char *name[PIX_FMT_NB + 1] = {
+    static const char *name[AV_PIX_FMT_NB + 1] = {
       ":NONE",
       ":YUV420P",
       ":YUYV422",
@@ -137,40 +137,29 @@ void avinfo_pix_fmt(int pix_fmt) {
 }
 
 
-int avinfo_codec(AVCodecContext *ctx) {
+int avinfo_codec(AVCodecParameters *cp) {
   AVCodec *codec;
+  AVCodecContext *ctx;
   printf("\n   (:codec");
-
-  // Find the decoder for the video stream
-  codec = avcodec_find_decoder(ctx->codec_id);
+  codec = avcodec_find_decoder(cp->codec_id);
   if (codec == NULL)
     return error("codec not found", ")");
-
-  // Inform the codec that we can handle truncated bitstreams -- i.e.,
-  // bitstreams where frame boundaries can fall in the middle of packets
+  ctx = avcodec_alloc_context3(codec);
   if (codec->capabilities & CODEC_CAP_TRUNCATED)
     ctx->flags |= CODEC_FLAG_TRUNCATED;
-
-  // Open codec
-  if(avcodec_open(ctx, codec) < 0)
-    error("avcodec_open failed", ")");
-
-  // Allocate video frame
-  AVFrame *pFrame = avcodec_alloc_frame();
-
-  printf("\n    :bit-rate %d", ctx->bit_rate);
-
+  if(avcodec_open2(ctx, codec, NULL) < 0)
+    error("avcodec_open2 failed", ")");
+  printf("\n    :bit-rate %lld", ctx->bit_rate);
   switch (ctx->codec_type) {
-  case CODEC_TYPE_AUDIO:
+  case AVMEDIA_TYPE_AUDIO:
     printf("\n    :codec-type :audio");
     printf("\n    :sample-rate %d", ctx->sample_rate);
     printf("\n    :channels %d", ctx->channels);
     printf("\n    :sample-format ");
     avinfo_sample_fmt(ctx->sample_fmt);
     printf("\n    :channel-layout %lld", ctx->channel_layout);
-
     break;
-  case CODEC_TYPE_VIDEO:
+  case AVMEDIA_TYPE_VIDEO:
     printf("\n    :codec-type :video");
     printf("\n    :width %d", ctx->width);
     printf("\n    :height %d", ctx->height);
@@ -186,10 +175,8 @@ int avinfo_codec(AVCodecContext *ctx) {
     break;
   }
   printf(")");
-
-  av_free(pFrame);
+  //av_free(pFrame);
   avcodec_close(ctx);
-
   return 0;
 }
 
@@ -198,7 +185,7 @@ int avinfo_stream(AVStream *stream) {
   printf("\n  (:stream");
   printf("\n   :id %d", stream->id);
   printf("\n   :codec");
-  avinfo_codec(stream->codec);
+  avinfo_codec(stream->codecpar);
   printf("\n   :start-time %llu", stream->start_time);
   printf("\n   :duration %llu", stream->duration);
   printf("\n   :nb-frames %llu", stream->nb_frames);
